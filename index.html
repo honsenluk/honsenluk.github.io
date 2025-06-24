@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIELCHによる色彩生成システム</title>
+  <style>
+    /* 重置和基础样式 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      min-height: 100vh;
+      color: #333;
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    /* 主容器 */
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 25px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* 标题区域 */
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #6c757d;
+      font-size: 1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    /* 主内容布局 */
+    .main-content {
+      display: flex;
+      gap: 25px;
+    }
+    
+    @media (max-width: 900px) {
+      .main-content {
+        flex-direction: column;
+      }
+    }
+    
+    /* 控制面板 */
+    .control-panel {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .panel {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+    
+    .panel-title {
+      color: #2c3e50;
+      margin-bottom: 18px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    /* 滑块组 */
+    .slider-group {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .slider-header label {
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 1rem;
+    }
+    
+    /* 滑块样式 */
+    input[type=range] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e9ecef;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #4B4B4B;
+      cursor: pointer;
+    }
+    
+    /* 输入框样式 */
+    input[type=number] {
+      padding: 0.5rem;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      background: white;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2c3e50;
+      width: 90px;
+      transition: border 0.1s;
+    }
+    
+    input[type=number]:focus {
+      border-color: #3498db;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+    
+    /* 基础颜色按钮容器 */
+    .base-actions {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+    
+    /* 基础颜色按钮样式 */
+    .base-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s;
+      background: #edf2f7;
+      color: black;
+      font-size: 0.85rem;
+    }
+    
+    .base-btn:hover {
+      background: #dbe4f0;
+    }
+    
+    /* 颜色预览 */
+    #color-preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    #color-preview {
+      width: 100%;
+      height: 90px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border: 1px solid #eee;
+    }
+    
+    #base-lch-value {
+      background: #edf2f7;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    /* 按钮样式 */
+    .btn {
+      padding: 8px 8px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s;
+      background: #edf2f7;
+      color: black;
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn:hover {
+      background: #dbe4f0;
+    }
+    
+    /* 导出按钮样式 */
+    .btn-export {
+      background: #edf2f7;
+    }
+    
+    .btn-export:hover {
+      background: #edf2f7;
+    }
+    
+    /* 生成颜色区域 */
+    .color-results {
+      flex: 1;
+    }
+    
+    #related-colors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 700px) {
+      #related-colors {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* 颜色卡片 */
+    .color-card {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 10px;
+      transition: transform 0.1s;
+    }
+    
+    .color-card:hover {
+      transform: translateY(-3px);
+    }
+    
+    .color-card-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      color: #2c3e50;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .color-preview {
+      width: 100%;
+      height: 90px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #eee;
+      position: relative;
+    }
+    
+    .color-value {
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      background: #edf2f7;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    
+    /* 颜色控制区域 */
+    .color-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .color-control {
+      flex: 1;
+    }
+    
+    .color-control label {
+      display: block;
+      font-size: 0.6rem;
+      margin-bottom: 6px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    /* 按钮容器 */
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .card-actions .btn {
+      flex: 1;
+    }
+    
+    /* 通知样式 */
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(44, 62, 80, 0.95);
+      color: white;
+      padding: 12px 25px;
+      border-radius: 30px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      font-size: 0.95rem;
+    }
+    
+    .notification.show {
+      opacity: 1;
+    }
+    
+    /* 导出模态框 */
+    .export-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    .export-modal.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .export-content {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+    
+    .export-preview {
+      width: 100%;
+      height: 200px;
+      border-radius: 8px;
+      margin: 15px 0;
+      border: 1px solid #ddd;
+    }
+    
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .export-option {
+      display: flex;
+      align-items: center;
+    }
+    
+    .export-option label {
+      margin-left: 10px;
+      font-size: 0.95rem;
+    }
+    
+    .export-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .export-buttons .btn {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CIELCHによる色彩生成システム</h1>
+    </header>
+    
+    <div class="main-content">
+      <div class="control-panel">
+        <!-- 基础颜色控制 -->
+        <div class="panel">
+          <div class="panel-title">色彩調整</div>
+          
+          <!-- 明度控制 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <label>L（明度）</label>
+              <input type="number" min="0" max="100" value="50" id="lInput">
+            </div>
+            <input type="range" min="0" max="100" value="50" id="lSlider">
+          </div>
+          
+          <!-- 彩度控制 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <label>C（彩度）</label>
+              <input type="number" min="0" max="150" value="50" id="cInput">
+            </div>
+            <input type="range" min="0" max="150" value="50" id="cSlider">
+          </div>
+          
+          <!-- 色相控制 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <label>h（色相角度）</label>
+              <input type="number" min="0" max="360" value="270" id="hInput">
+            </div>
+            <input type="range" min="0" max="360" value="270" id="hSlider">
+          </div>
+        </div>
+        
+        <!-- 颜色预览 -->
+        <div class="panel">
+          <div class="panel-title">塩味</div>
+          <div id="color-preview-container">
+            <div id="color-preview"></div>
+            <div id="base-lch-value">lch(50% 50 270°)</div>
+            <div class="base-actions">
+              <button class="base-btn" id="copy-base-btn">色彩値をコピー</button>
+              <button class="base-btn" id="export-base-btn">エクスポート</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 生成颜色区域 -->
+      <div class="color-results">
+        <div class="panel">
+          <div class="panel-title">生成した色彩</div>
+          <div id="related-colors"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 导出模态框 -->
+  <div class="export-modal" id="export-modal">
+    <div class="export-content">
+      <h3>色彩を画像としてエクスポート</h3>
+      <div class="export-preview" id="export-preview"></div>
+      
+      <div class="export-options">
+        <div class="export-option">
+          <input type="radio" id="size-small" name="export-size" value="small" checked>
+          <label for="size-small">小サイズ (200x200)</label>
+        </div>
+        <div class="export-option">
+          <input type="radio" id="size-medium" name="export-size" value="medium">
+          <label for="size-medium">中サイズ (400x400)</label>
+        </div>
+        <div class="export-option">
+          <input type="radio" id="size-large" name="export-size" value="large">
+          <label for="size-large">大サイズ (800x800)</label>
+        </div>
+      </div>
+      
+      <div class="export-buttons">
+        <button class="btn btn-export" id="export-confirm">エクスポート</button>
+        <button class="btn" id="export-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 通知元素 -->
+  <div class="notification" id="notification">コピーしました</div>
+  
+  <script>
+    // ========================
+    // 获取DOM元素
+    // ========================
+    const lSlider = document.getElementById('lSlider');
+    const cSlider = document.getElementById('cSlider');
+    const hSlider = document.getElementById('hSlider');
+    const lInput = document.getElementById('lInput');
+    const cInput = document.getElementById('cInput');
+    const hInput = document.getElementById('hInput');
+    const preview = document.getElementById('color-preview');
+    const baseLchValue = document.getElementById('base-lch-value');
+    const notification = document.getElementById('notification');
+    const copyBaseBtn = document.getElementById('copy-base-btn');
+    const exportBaseBtn = document.getElementById('export-base-btn');
+    const relatedContainer = document.getElementById('related-colors');
+    const exportModal = document.getElementById('export-modal');
+    const exportPreview = document.getElementById('export-preview');
+    const exportConfirmBtn = document.getElementById('export-confirm');
+    const exportCancelBtn = document.getElementById('export-cancel');
+    
+    // ========================
+    // 颜色配置数据
+    // ========================
+    const colorTargets = [
+      { 
+        id: 0, 
+        name: "酸味", 
+        deltaH: 180, 
+        targetL: 80, 
+        targetC: 100,
+        lInput: null,  // 存储输入框引用
+        cInput: null   // 存储输入框引用
+      },
+      { 
+        id: 1, 
+        name: "旨味", 
+        deltaH: 210, 
+        targetL: 80, 
+        targetC: 100,
+        lInput: null,
+        cInput: null
+      },
+      { 
+        id: 2, 
+        name: "甘味", 
+        deltaH: 240, 
+        targetL: 80, 
+        targetC: 100,
+        lInput: null,
+        cInput: null
+      },
+      { 
+        id: 3, 
+        name: "苦味", 
+        deltaH: 300, 
+        targetL: 80, 
+        targetC: 100,
+        lInput: null,
+        cInput: null
+      }
+    ];
+    
+    // 当前选择的颜色用于导出
+    let currentExportColor = null;
+    
+    // ========================
+    // 初始化函数
+    // ========================
+    function init() {
+      // 设置事件监听器
+      [lSlider, cSlider, hSlider].forEach(slider => {
+        slider.addEventListener('input', syncInputs);
+      });
+      
+      [lInput, cInput, hInput].forEach(input => {
+        input.addEventListener('input', syncSliders);
+      });
+      
+      // 复制基础颜色按钮事件
+      copyBaseBtn.addEventListener('click', () => {
+        const L = +lSlider.value;
+        const C = +cSlider.value;
+        const h = +hSlider.value;
+        copyToClipboard(`lch(${L}% ${C} ${h}°)`);
+      });
+      
+      // 导出基础颜色按钮事件
+      exportBaseBtn.addEventListener('click', () => {
+        openExportModal({
+          name: "塩味",
+          targetL: +lSlider.value,
+          targetC: +cSlider.value,
+          deltaH: 0
+        }, +hSlider.value);
+      });
+      
+      // 创建生成颜色卡片
+      createColorCards();
+      
+      // 初始更新
+      updateColors();
+      
+      // 导出相关事件
+      exportConfirmBtn.addEventListener('click', exportColorImage);
+      exportCancelBtn.addEventListener('click', () => {
+        exportModal.classList.remove('show');
+      });
+    }
+    
+    // ========================
+    // 同步滑块和输入框的值
+    // ========================
+    function syncSliders() {
+      lSlider.value = lInput.value;
+      cSlider.value = cInput.value;
+      hSlider.value = hInput.value;
+      updateColors();
+    }
+    
+    function syncInputs() {
+      lInput.value = lSlider.value;
+      cInput.value = cSlider.value;
+      hInput.value = hSlider.value;
+      updateColors();
+    }
+    
+    // ========================
+    // 更新所有颜色
+    // ========================
+    function updateColors() {
+      const L = +lSlider.value;
+      const C = +cSlider.value;
+      const h = +hSlider.value;
+      
+      // 更新基础颜色预览
+      preview.style.background = `lch(${L}% ${C} ${h})`;
+      baseLchValue.textContent = `lch(${L}% ${C} ${h}°)`;
+      
+      // 更新生成颜色
+      updateGeneratedColors(L, C, h);
+    }
+    
+    // ========================
+    // 创建生成颜色卡片（只执行一次）
+    // ========================
+    function createColorCards() {
+      relatedContainer.innerHTML = "";
+      
+      colorTargets.forEach(target => {
+        // 创建颜色卡片
+        const colorCard = document.createElement("div");
+        colorCard.className = "color-card";
+        colorCard.id = `color-card-${target.id}`;
+        
+        // 卡片标题
+        const title = document.createElement("div");
+        title.className = "color-card-title";
+        title.textContent = target.name;
+        colorCard.appendChild(title);
+        
+        // 颜色预览
+        const colorPreview = document.createElement("div");
+        colorPreview.className = "color-preview";
+        colorPreview.id = `color-preview-${target.id}`;
+        colorCard.appendChild(colorPreview);
+        
+        // 颜色值显示
+        const colorValue = document.createElement("div");
+        colorValue.className = "color-value";
+        colorValue.id = `color-value-${target.id}`;
+        colorCard.appendChild(colorValue);
+        
+        // 颜色控制区域
+        const controls = document.createElement("div");
+        controls.className = "color-controls";
+        
+        // 明度控制
+        const lightnessControl = document.createElement("div");
+        lightnessControl.className = "color-control";
+        
+        const lightnessLabel = document.createElement("label");
+        lightnessLabel.textContent = "明度 (L)";
+        lightnessLabel.htmlFor = `l-target-${target.id}`;
+        lightnessControl.appendChild(lightnessLabel);
+        
+        const lightnessInput = document.createElement("input");
+        lightnessInput.type = "number";
+        lightnessInput.min = "0";
+        lightnessInput.max = "100";
+        lightnessInput.value = target.targetL;
+        lightnessInput.id = `l-target-${target.id}`;
+        lightnessInput.addEventListener('input', (e) => {
+          target.targetL = +e.target.value;
+          updateGeneratedColors(+lSlider.value, +cSlider.value, +hSlider.value);
+        });
+        lightnessControl.appendChild(lightnessInput);
+        
+        // 保存输入框引用
+        target.lInput = lightnessInput;
+        
+        controls.appendChild(lightnessControl);
+        
+        // 彩度控制
+        const chromaControl = document.createElement("div");
+        chromaControl.className = "color-control";
+        
+        const chromaLabel = document.createElement("label");
+        chromaLabel.textContent = "彩度 (C)";
+        chromaLabel.htmlFor = `c-target-${target.id}`;
+        chromaControl.appendChild(chromaLabel);
+        
+        const chromaInput = document.createElement("input");
+        chromaInput.type = "number";
+        chromaInput.min = "0";
+        chromaInput.max = "150";
+        chromaInput.value = target.targetC;
+        chromaInput.id = `c-target-${target.id}`;
+        chromaInput.addEventListener('input', (e) => {
+          target.targetC = +e.target.value;
+          updateGeneratedColors(+lSlider.value, +cSlider.value, +hSlider.value);
+        });
+        chromaControl.appendChild(chromaInput);
+        
+        // 保存输入框引用
+        target.cInput = chromaInput;
+        
+        controls.appendChild(chromaControl);
+        
+        colorCard.appendChild(controls);
+        
+        // 按钮容器
+        const cardActions = document.createElement("div");
+        cardActions.className = "card-actions";
+        
+        // 复制按钮
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn";
+        copyBtn.textContent = "色彩値をコピー";
+        copyBtn.onclick = () => {
+          const targetH = (+hSlider.value + target.deltaH) % 360;
+          copyToClipboard(`lch(${target.targetL}% ${target.targetC} ${targetH}°)`);
+        };
+        cardActions.appendChild(copyBtn);
+        
+        // 导出按钮
+        const exportBtn = document.createElement("button");
+        exportBtn.className = "btn btn-export";
+        exportBtn.innerHTML = '<span>エクスポート</span>';
+        exportBtn.onclick = () => {
+          openExportModal(target, +hSlider.value);
+        };
+        cardActions.appendChild(exportBtn);
+        
+        colorCard.appendChild(cardActions);
+        
+        relatedContainer.appendChild(colorCard);
+      });
+    }
+    
+    // ========================
+    // 更新生成颜色（不重建DOM）
+    // ========================
+    function updateGeneratedColors(L, C, h) {
+      colorTargets.forEach(target => {
+        const targetH = (h + target.deltaH) % 360;
+        const colorPreview = document.getElementById(`color-preview-${target.id}`);
+        const colorValue = document.getElementById(`color-value-${target.id}`);
+        
+        // 更新预览和颜色值
+        colorPreview.style.background = `lch(${target.targetL}% ${target.targetC} ${targetH})`;
+        colorValue.textContent = `lch(${target.targetL}% ${target.targetC} ${targetH}°)`;
+        
+        // 更新输入框值（防止外部修改）
+        target.lInput.value = target.targetL;
+        target.cInput.value = target.targetC;
+      });
+    }
+    
+    // ========================
+    // 打开导出模态框
+    // ========================
+    function openExportModal(target, h) {
+      currentExportColor = target;
+      
+      // 计算当前颜色
+      const targetH = (h + target.deltaH) % 360;
+      const colorValue = `lch(${target.targetL}% ${target.targetC} ${targetH})`;
+      
+      // 设置预览颜色
+      exportPreview.style.background = colorValue;
+      
+      // 显示模态框
+      exportModal.classList.add('show');
+    }
+    
+    // ========================
+    // 导出颜色为图像
+    // ========================
+    function exportColorImage() {
+      if (!currentExportColor) return;
+      
+      // 获取选择的尺寸
+      const size = document.querySelector('input[name="export-size"]:checked').value;
+      let canvasSize;
+      
+      switch(size) {
+        case 'small':
+          canvasSize = 200;
+          break;
+        case 'medium':
+          canvasSize = 400;
+          break;
+        case 'large':
+          canvasSize = 800;
+          break;
+        default:
+          canvasSize = 200;
+      }
+      
+      // 创建Canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+      const ctx = canvas.getContext('2d');
+      
+      // 计算当前颜色
+      const h = +hSlider.value;
+      const targetH = (h + currentExportColor.deltaH) % 360;
+      const colorValue = `lch(${currentExportColor.targetL}% ${currentExportColor.targetC} ${targetH})`;
+      
+      // 绘制纯色方块
+      ctx.fillStyle = colorValue;
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
+      
+      // 导出为PNG
+      const dataURL = canvas.toDataURL('image/png');
+      
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.download = `${currentExportColor.name}_${canvasSize}x${canvasSize}.png`;
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 关闭模态框
+      exportModal.classList.remove('show');
+      
+      // 显示通知
+      notification.textContent = `${currentExportColor.name}の色をエクスポートしました`;
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 2000);
+    }
+    
+    // ========================
+    // 复制到剪贴板功能
+    // ========================
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        notification.textContent = "コピーしました：" + text;
+        notification.classList.add("show");
+        setTimeout(() => {
+          notification.classList.remove("show");
+        }, 2000);
+      }).catch(err => {
+        console.error('复制失败: ', err);
+      });
+    }
+    
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
