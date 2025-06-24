@@ -499,7 +499,7 @@
   <!-- 通知元素 -->
   <div class="notification" id="notification">コピーしました</div>
   
-  <script>
+<script>
     // ========================
     // 获取DOM元素
     // ========================
@@ -575,7 +575,21 @@
       });
       
       [lInput, cInput, hInput].forEach(input => {
-        input.addEventListener('input', syncSliders);
+        input.addEventListener('input', function() {
+          // 添加范围检查
+          let value = +this.value;
+          
+          if (this === lInput) {
+            value = Math.min(100, Math.max(0, value));
+          } else if (this === cInput) {
+            value = Math.min(150, Math.max(0, value));
+          } else if (this === hInput) {
+            value = Math.min(360, Math.max(0, value));
+          }
+          
+          this.value = value;
+          syncSliders();
+        });
       });
       
       // 复制基础颜色按钮事件
@@ -692,7 +706,11 @@
         lightnessInput.value = target.targetL;
         lightnessInput.id = `l-target-${target.id}`;
         lightnessInput.addEventListener('input', (e) => {
-          target.targetL = +e.target.value;
+          let value = +e.target.value;
+          // 确保明度在0-100范围内
+          value = Math.min(100, Math.max(0, value));
+          e.target.value = value;
+          target.targetL = value;
           updateGeneratedColors(+lSlider.value, +cSlider.value, +hSlider.value);
         });
         lightnessControl.appendChild(lightnessInput);
@@ -718,7 +736,11 @@
         chromaInput.value = target.targetC;
         chromaInput.id = `c-target-${target.id}`;
         chromaInput.addEventListener('input', (e) => {
-          target.targetC = +e.target.value;
+          let value = +e.target.value;
+          // 确保彩度在0-150范围内
+          value = Math.min(150, Math.max(0, value));
+          e.target.value = value;
+          target.targetC = value;
           updateGeneratedColors(+lSlider.value, +cSlider.value, +hSlider.value);
         });
         chromaControl.appendChild(chromaInput);
@@ -873,6 +895,6 @@
     
     // 页面加载完成后初始化
     window.addEventListener('DOMContentLoaded', init);
-  </script>
+</script>
 </body>
 </html>
